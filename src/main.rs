@@ -32,6 +32,7 @@ use embedded_graphics_simulator::{
 };
 use gauge::gauge::Dial;
 use std::{thread, time::Duration};
+use gauge::gauge::{Digits};
 
 mod gauge;
 
@@ -43,12 +44,16 @@ fn main() -> Result<(), std::convert::Infallible> {
         .build();
     let mut window = Window::new("Boost", &output_settings);
 
-    let mut boost = Dial::new("Boost".to_string(), -1.0, 2.0, 1.2);
+    let mut boost = Dial::new("Boost".to_string(), -1.0, 2.0, 1.2, Digits::Two, 0);
+    let mut oiltemp = Dial::new("Oil temp".to_string(), 0.0, 150.0, 80.0, Digits::None, 64);
+    let mut oilpres = Dial::new("Oil pres".to_string(), 0.0, 10.0, 4.0, Digits::Single, 128);
 
     'running: loop {
         display.clear(BinaryColor::Off)?;
 
         boost.draw(&mut display)?;
+        oiltemp.draw(&mut display)?;
+        oilpres.draw(&mut display)?;
 
         window.update(&display);
 

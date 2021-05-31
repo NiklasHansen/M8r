@@ -15,6 +15,8 @@ pub mod gauge {
         pub min_value: f32,
         pub max_value: f32,
         pub current_value: f32,
+        pub digits: Digits,
+        pub start_x: u8,
 
         arc_stroke: PrimitiveStyle<BinaryColor>,
         outline: PrimitiveStyle<BinaryColor>,
@@ -28,12 +30,16 @@ pub mod gauge {
             min_value: f32,
             max_value: f32,
             current_value: f32,
+            digits: Digits,
+            start_x: u8,
         ) -> Dial<'a> {
             Dial {
                 title,
                 min_value,
                 max_value,
                 current_value,
+                digits,
+                start_x,
 
                 arc_stroke: PrimitiveStyleBuilder::new()
                     .stroke_color(BinaryColor::On)
@@ -62,11 +68,17 @@ pub mod gauge {
         where
             D: DrawTarget<Color = BinaryColor>,
         {
-            let percentage = ((self.current_value - self.min_value) / (self.max_value - self.min_value)) * 100.0;
+            let percentage =
+                ((self.current_value - self.min_value) / (self.max_value - self.min_value)) * 100.0;
             let sweep = percentage * 270.0 / 100.0;
 
             // Draw an arc with a 5px wide stroke.
-            let arc = Arc::new(Point::new(2, 2), 64 - 4, 270.0.deg(), -sweep.deg());
+            let arc = Arc::new(
+                Point::new((self.start_x + 2).into(), 2),
+                64 - 4,
+                270.0.deg(),
+                -sweep.deg(),
+            );
             arc.into_styled(self.arc_stroke).draw(target)?;
 
             Arc::with_center(arc.center(), 64 - 4, 270.0.deg(), -270.0.deg())
@@ -77,20 +89,36 @@ pub mod gauge {
                 .into_styled(self.outline)
                 .draw(target)?;
 
-            Line::new(Point::new(57, 31), Point::new(61, 31))
-                .into_styled(self.outline)
-                .draw(target)?;
+            Line::new(
+                Point::new((self.start_x + 57).into(), 31),
+                Point::new((self.start_x + 61).into(), 31),
+            )
+            .into_styled(self.outline)
+            .draw(target)?;
 
-            Line::new(Point::new(2, 31), Point::new(6, 31))
-                .into_styled(self.outline)
-                .draw(target)?;
+            Line::new(
+                Point::new((self.start_x + 2).into(), 31),
+                Point::new((self.start_x + 6).into(), 31),
+            )
+            .into_styled(self.outline)
+            .draw(target)?;
 
             // Draw centered text.
-            let text = format!("{:.2}", self.current_value);
+            let text = match self.digits {
+                Digits::None => format!("{:.0}", self.current_value),
+                Digits::Single => format!("{:.1}", self.current_value),
+                Digits::Two => format!("{:.2}", self.current_value),
+            };
             Text::with_text_style(&text, arc.center(), self.character_style, self.text_style)
                 .draw(target)?;
 
             Ok(())
         }
+    }
+
+    pub enum Digits {
+        None,
+        Single,
+        Two,
     }
 }
