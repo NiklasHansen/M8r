@@ -2,7 +2,7 @@ pub mod gauge {
 
     use embedded_graphics::{
         draw_target::DrawTarget,
-        mono_font::{ascii::FONT_10X20, MonoTextStyle},
+        mono_font::{ascii::FONT_10X20, ascii::FONT_4X6, MonoTextStyle},
         pixelcolor::BinaryColor,
         prelude::*,
         primitives::{Arc, Line, PrimitiveStyle, PrimitiveStyleBuilder, StrokeAlignment},
@@ -11,7 +11,7 @@ pub mod gauge {
     };
 
     pub struct Dial<'a> {
-        pub title: String,
+        pub title: &'a str,
         pub min_value: f32,
         pub max_value: f32,
         pub current_value: f32,
@@ -26,7 +26,7 @@ pub mod gauge {
 
     impl Dial<'_> {
         pub fn new<'a>(
-            title: String,
+            title: &'a str,
             min_value: f32,
             max_value: f32,
             current_value: f32,
@@ -110,6 +110,11 @@ pub mod gauge {
                 Digits::Two => format!("{:.2}", self.current_value),
             };
             Text::with_text_style(&text, arc.center(), self.character_style, self.text_style)
+                .draw(target)?;
+
+
+            let character_style = MonoTextStyle::new(&FONT_4X6, BinaryColor::On);
+            Text::with_text_style(self.title, Point::new(arc.center().x, 20), character_style, self.text_style)
                 .draw(target)?;
 
             Ok(())
