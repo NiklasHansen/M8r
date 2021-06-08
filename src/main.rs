@@ -44,11 +44,12 @@ fn main() -> Result<(), std::convert::Infallible> {
         .build();
     let mut window = Window::new("Boost", &output_settings);
 
-    let mut boost = Dial::new("Boost", -1.0, 2.0, 1.2, Digits::Two, 0);
-    let mut oiltemp = Dial::new("Oil temp", 0.0, 150.0, 80.0, Digits::None, 64);
-    let mut oilpres = Dial::new("Oil pres", 0.0, 10.0, 4.0, Digits::Single, 128);
+    let mut boost = Dial::new("Boost", -1.0, 2.0, 1.2, Digits::Two, 0, &[0.0]);
+    let /*mut*/ oiltemp = Dial::new("Oil temp", 0.0, 150.0, 80.0, Digits::None, 64, &[80.0]);
+    let /*mut*/ oilpres = Dial::new("Oil pres", 0.0, 10.0, 0.0, Digits::Single, 128, &[2.0, 4.0, 6.0, 8.0]);
 
     'running: loop {
+        //let frame_start = std::time::Instant::now();
         display.clear(BinaryColor::Off)?;
 
         boost.draw(&mut display)?;
@@ -57,6 +58,10 @@ fn main() -> Result<(), std::convert::Infallible> {
 
         window.update(&display);
 
+        //let frame_end = std::time::Instant::now();
+        //let frame_time = frame_end.duration_since(frame_start).as_millis();
+        //println!("{}", frame_time);
+        
         if window.events().any(|e| e == SimulatorEvent::Quit) {
             break 'running Ok(());
         }
