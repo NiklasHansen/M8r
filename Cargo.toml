@@ -8,5 +8,5 @@ edition = "2018"
 
 [dependencies]
 socketcan = "1.7"
-embedded-graphics = "0.7.0-beta.2"
-embedded-graphics-simulator = "0.3.0-beta.2"
+embedded-graphics = "0.7.0"
+embedded-graphics-simulator = "0.3.0"
