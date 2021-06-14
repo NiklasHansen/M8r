@@ -115,7 +115,7 @@ pub mod gauge {
         fn create_indicator_line(&mut self, value: f32) {
             let percentage = ((value - self.min_value) / (self.max_value - self.min_value)) * 100.0;
             let sweep = 360.0 - ((100.0 - percentage) * 270.0 / 100.0);
-            
+
             let center = self.bounding.center();
             let inner_point = Point::new(
                 center.x + (self.inner_radius as f32 * sweep.to_radians().cos()).round() as i32,
