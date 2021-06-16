@@ -16,8 +16,7 @@ use embedded_graphics::{pixelcolor::BinaryColor, prelude::*};
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
-use gauge::gauge::Dial;
-use gauge::gauge::Digits;
+use gauge::{dial::Dial, textgauge::TextGauge, Digits};
 use socketcan::CANSocket;
 use std::time::Duration;
 
@@ -29,12 +28,13 @@ fn main() -> Result<(), std::convert::Infallible> {
     let output_settings = OutputSettingsBuilder::new()
         .theme(BinaryColorTheme::OledBlue)
         .build();
-    let mut window = Window::new("Boost", &output_settings);
+    let mut window = Window::new("m8r", &output_settings);
 
     let mut boost = Dial::new("Boost", -1.0, 2.0, 1.2, Digits::Two, 0, &[0.0]);
     let /*mut*/ oiltemp = Dial::new("Oil temp", 0.0, 150.0, 70.0, Digits::None, 64, &[80.0]);
     let /*mut*/ oilpres = Dial::new("Oil pres", 0.0, 10.0, 0.0, Digits::Single, 128, &[2.0, 4.0, 6.0, 8.0]);
 
+    // TODO: Set up filter, to filter out frames not relevant.
     let socket = CANSocket::open("vcan0").unwrap();
     let target_fps = 30;
     let time_per_frame = Duration::from_millis(1000 / target_fps);
@@ -62,8 +62,8 @@ fn main() -> Result<(), std::convert::Infallible> {
                         socket.set_read_timeout(time).unwrap();
                         let frame = socket.read_frame();
                         match frame {
-                            Result::Ok(f) => println!("{}", f.id()),
-                            Result::Err(_) => println!("No frame to read"),
+                            Result::Ok(f) => println!("{}", f.id()), // TODO: Read frame, update state
+                            Result::Err(_) => continue,
                         };
                     } else {
                         break;
