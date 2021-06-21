@@ -1,1 +1,44 @@
 interface = "vcan0"
+
+[[gauges]]
+gauge = "dial"
+title = "Boost"
+unit = "bar"
+min_value = -1.0
+max_value = 2.0
+indicators = [0.0]
+digits = 2
+
+
+[[gauges]]
+gauge = "dial"
+title = "Oil temp"
+unit = "C"
+min_value = 0.0
+max_value = 150.0
+indicators = [80.0]
+digits = 0
+
+
+[[gauges]]
+gauge = "dial"
+title = "Oil pres"
+unit = "bar"
+min_value = 0.0
+max_value = 10.0
+indicators = [2.0, 4.0, 6.0, 8.0]
+digits = 1
+
+
+[[gauges]]
+gauge = "text"
+title = "H2O"
+unit = "C"
+digits = 0
+
+
+[[gauges]]
+gauge = "text"
+title = "IAT"
+unit = "C"
+digits = 0

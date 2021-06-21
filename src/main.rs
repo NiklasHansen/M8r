@@ -28,6 +28,18 @@ mod gauge;
 #[derive(Deserialize)]
 struct Config {
     interface: String,
+    gauges: Vec<Gauge>,
+}
+
+#[derive(Deserialize)]
+struct Gauge {
+    gauge: String,
+    title: String,
+    unit: String,
+    min_value: Option<f32>,
+    max_value: Option<f32>,
+    indicators: Option<Vec<f32>>,
+    digits: u8,
 }
 
 fn main() -> Result<(), std::convert::Infallible> {
@@ -43,6 +55,8 @@ fn main() -> Result<(), std::convert::Infallible> {
     let mut file_content = String::new();
     let _bytes_read = file.read_to_string(&mut file_content).unwrap();
     let config: Config = toml::from_str(&&file_content).unwrap();
+
+    println!("{}", config.gauges.first().unwrap().title);
 
     let mut boost = Dial::new("Boost", -1.0, 2.0, 1.2, Digits::Two, 0, &[0.0]);
     let /*mut*/ oiltemp = Dial::new("Oil temp", 0.0, 150.0, 70.0, Digits::None, 64, &[80.0]);
@@ -63,7 +77,7 @@ fn main() -> Result<(), std::convert::Infallible> {
     );
 
     // TODO: Set up filter, to filter out frames not relevant.
-    let socket = CANSocket::open(&config.interface).unwrap();
+    //let socket = CANSocket::open(&config.interface).unwrap();
     let target_fps = 30;
     let time_per_frame = Duration::from_millis(1000 / target_fps);
 
@@ -89,12 +103,12 @@ fn main() -> Result<(), std::convert::Infallible> {
             match time_to_next_frame {
                 Some(time) => {
                     if time.as_millis() > 0 {
-                        socket.set_read_timeout(time).unwrap();
-                        let frame = socket.read_frame();
-                        match frame {
-                            Result::Ok(f) => println!("{}", f.id()), // TODO: Read frame, update state
-                            Result::Err(_) => continue,
-                        };
+                        //socket.set_read_timeout(time).unwrap();
+                        //let frame = socket.read_frame();
+                        //match frame {
+                            //Result::Ok(f) => println!("{}", f.id()), // TODO: Read frame, update state
+                            //Result::Err(_) => continue,
+                        //};
                     } else {
                         break;
                     }
