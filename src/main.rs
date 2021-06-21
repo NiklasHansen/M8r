@@ -17,10 +17,18 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
 use gauge::{dial::Dial, textgauge::TextGauge, Digits};
+use serde::Deserialize;
 use socketcan::CANSocket;
+use std::fs::File;
+use std::io::Read;
 use std::time::Duration;
 
 mod gauge;
+
+#[derive(Deserialize)]
+struct Config {
+    interface: String,
+}
 
 fn main() -> Result<(), std::convert::Infallible> {
     let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(256, 64));
@@ -30,14 +38,32 @@ fn main() -> Result<(), std::convert::Infallible> {
         .build();
     let mut window = Window::new("m8r", &output_settings);
 
+    let input_file = "./config.toml";
+    let mut file = File::open(input_file).unwrap();
+    let mut file_content = String::new();
+    let _bytes_read = file.read_to_string(&mut file_content).unwrap();
+    let config: Config = toml::from_str(&&file_content).unwrap();
+
     let mut boost = Dial::new("Boost", -1.0, 2.0, 1.2, Digits::Two, 0, &[0.0]);
     let /*mut*/ oiltemp = Dial::new("Oil temp", 0.0, 150.0, 70.0, Digits::None, 64, &[80.0]);
     let /*mut*/ oilpres = Dial::new("Oil pres", 0.0, 10.0, 0.0, Digits::Single, 128, &[2.0, 4.0, 6.0, 8.0]);
-    let coolant = TextGauge::new("H2O", "C", 85.0, Digits::None, Rectangle::new(Point::new(192, 2), Size::new(64, 10)));
-    let iat = TextGauge::new("IAT", "C", 32.0, Digits::None, Rectangle::new(Point::new(192, 12), Size::new(64, 10)));
-    
+    let coolant = TextGauge::new(
+        "H2O",
+        "C",
+        85.0,
+        Digits::None,
+        Rectangle::new(Point::new(192, 2), Size::new(64, 10)),
+    );
+    let iat = TextGauge::new(
+        "IAT",
+        "C",
+        32.0,
+        Digits::None,
+        Rectangle::new(Point::new(192, 12), Size::new(64, 10)),
+    );
+
     // TODO: Set up filter, to filter out frames not relevant.
-    let socket = CANSocket::open("vcan0").unwrap();
+    let socket = CANSocket::open(&config.interface).unwrap();
     let target_fps = 30;
     let time_per_frame = Duration::from_millis(1000 / target_fps);
 
