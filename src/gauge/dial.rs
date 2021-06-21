@@ -1,16 +1,14 @@
+use super::{Digits, DrawableWrapper, SetValue};
 use embedded_graphics::{
     draw_target::DrawTarget,
     geometry::Size,
     mono_font::{ascii::FONT_10X20, ascii::FONT_4X6, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
-    primitives::{
-        Arc, Line, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, StrokeAlignment,
-    },
+    primitives::{Arc, Line, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, StrokeAlignment},
     text::{Alignment, Baseline, Text, TextStyle, TextStyleBuilder},
     Drawable,
 };
-use super::{Digits, DrawableWrapper};
 
 pub struct Dial<'a> {
     pub title: &'a str,
@@ -168,5 +166,11 @@ impl Drawable for Dial<'_> {
         }
 
         Ok(())
+    }
+}
+
+impl SetValue for Dial<'_> {
+    fn set_name(&mut self, value: f32) {
+        self.current_value = value;
     }
 }

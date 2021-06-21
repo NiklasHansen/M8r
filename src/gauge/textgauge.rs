@@ -1,4 +1,4 @@
-use super::{Digits, DrawableWrapper};
+use super::{Digits, DrawableWrapper, SetValue};
 use embedded_graphics::{
     draw_target::DrawTarget,
     mono_font::{ascii::FONT_6X9, MonoTextStyle},
@@ -64,7 +64,6 @@ impl Drawable for TextGauge<'_> {
     where
         D: DrawTarget<Color = BinaryColor>,
     {
-        
         let text_style = TextStyleBuilder::new()
             .baseline(Baseline::Middle)
             .alignment(Alignment::Right)
@@ -76,10 +75,17 @@ impl Drawable for TextGauge<'_> {
         };
         Text::with_text_style(
             &format!("{} {}", value, self.unit),
-            Point::new(self.bounding_box.anchor_point(embedded_graphics::geometry::AnchorPoint::TopRight).x - 2, self.bounding_box.center().y),
+            Point::new(
+                self.bounding_box
+                    .anchor_point(embedded_graphics::geometry::AnchorPoint::TopRight)
+                    .x
+                    - 2,
+                self.bounding_box.center().y,
+            ),
             self.character_style,
             text_style,
-        ).draw(target)?;
+        )
+        .draw(target)?;
 
         let drawable_iter = self.drawables.iter();
         for drawable in drawable_iter {
@@ -87,5 +93,11 @@ impl Drawable for TextGauge<'_> {
         }
 
         Ok(())
+    }
+}
+
+impl SetValue for TextGauge<'_> {
+    fn set_name(&mut self, value: f32) {
+        self.value = value;
     }
 }

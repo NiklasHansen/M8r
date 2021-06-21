@@ -18,6 +18,10 @@ pub enum Digits {
     Two,
 }
 
+pub trait SetValue {
+    fn set_name(&mut self, value: f32);
+}
+
 enum DrawableWrapper<'a> {
     Arc(Styled<Arc, PrimitiveStyle<BinaryColor>>),
     Line(Styled<Line, PrimitiveStyle<BinaryColor>>),
