@@ -97,7 +97,7 @@ impl Drawable for TextGauge<'_> {
 }
 
 impl SetValue for TextGauge<'_> {
-    fn set_name(&mut self, value: f32) {
+    fn set_value(&mut self, value: f32) {
         self.value = value;
     }
 }

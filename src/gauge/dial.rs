@@ -1,7 +1,6 @@
 use super::{Digits, DrawableWrapper, SetValue};
 use embedded_graphics::{
     draw_target::DrawTarget,
-    geometry::Size,
     mono_font::{ascii::FONT_10X20, ascii::FONT_4X6, MonoTextStyle},
     pixelcolor::BinaryColor,
     prelude::*,
@@ -16,9 +15,8 @@ pub struct Dial<'a> {
     pub max_value: f32,
     pub current_value: f32,
     pub digits: Digits,
-    pub start_x: u8,
+    pub bounding: Rectangle,
 
-    bounding: Rectangle,
     arc_stroke: PrimitiveStyle<BinaryColor>,
     outline: PrimitiveStyle<BinaryColor>,
     character_style: MonoTextStyle<'a, BinaryColor>,
@@ -35,7 +33,7 @@ impl Dial<'_> {
         max_value: f32,
         current_value: f32,
         digits: Digits,
-        start_x: u8,
+        bounding: Rectangle,
         indicators: &[f32],
     ) -> Dial<'a> {
         let mut ret = Dial {
@@ -44,9 +42,8 @@ impl Dial<'_> {
             max_value,
             current_value,
             digits,
-            start_x,
+            bounding,
 
-            bounding: Rectangle::new(Point::new(start_x.into(), 0), Size::new(64, 64)),
             arc_stroke: PrimitiveStyleBuilder::new()
                 .stroke_color(BinaryColor::On)
                 .stroke_width(5)
@@ -144,7 +141,7 @@ impl Drawable for Dial<'_> {
 
         // Draw an arc with a 5px wide stroke.
         let arc = Arc::new(
-            Point::new((self.start_x + 2).into(), 2),
+            Point::new((self.bounding.top_left.x + 2).into(), 2),
             64 - 4,
             270.0.deg(),
             -sweep.deg(),
@@ -170,7 +167,7 @@ impl Drawable for Dial<'_> {
 }
 
 impl SetValue for Dial<'_> {
-    fn set_name(&mut self, value: f32) {
+    fn set_value(&mut self, value: f32) {
         self.current_value = value;
     }
 }
