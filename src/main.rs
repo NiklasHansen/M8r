@@ -16,10 +16,11 @@ use embedded_graphics::{pixelcolor::BinaryColor, prelude::*, primitives::Rectang
 use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
-use gauge::{dial::Dial, textgauge::TextGauge, Digits};
+use gauge::{dial::Dial, textgauge::TextGauge, Digits, SetValue};
 use serde::Deserialize;
 use socketcan::CANSocket;
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
 use std::time::Duration;
@@ -35,7 +36,7 @@ struct Config {
 
 #[derive(Deserialize)]
 struct Gauge {
-    frame_id: u16,
+    frame_id: u32,
     slot_id: u8,
     gauge: GaugeType,
     title: String,
@@ -80,7 +81,7 @@ fn main() -> Result<(), std::convert::Infallible> {
     let _bytes_read = file.read_to_string(&mut file_content).unwrap();
     let config: Config = toml::from_str(&&file_content).unwrap();
 
-    let mut gauges: HashMap<u16, HashMap<u8, gauge::Gauge>> = HashMap::new();
+    let mut gauges: HashMap<u32, HashMap<u8, gauge::Gauge>> = HashMap::new();
     for gauge_config in config.gauges.iter() {
         if !gauges.contains_key(&gauge_config.frame_id) {
             gauges.insert(gauge_config.frame_id, HashMap::new());
@@ -127,7 +128,7 @@ fn main() -> Result<(), std::convert::Infallible> {
     }
 
     // TODO: Set up filter, to filter out frames not relevant.
-    //let socket = CANSocket::open(&config.interface).unwrap();
+    let socket = CANSocket::open(&config.interface).unwrap();
     let target_fps = 30;
     let time_per_frame = Duration::from_millis(1000 / target_fps);
 
@@ -153,12 +154,30 @@ fn main() -> Result<(), std::convert::Infallible> {
             match time_to_next_frame {
                 Some(time) => {
                     if time.as_millis() > 0 {
-                        //socket.set_read_timeout(time).unwrap();
-                        //let frame = socket.read_frame();
-                        //match frame {
-                        //Result::Ok(f) => println!("{}", f.id()), // TODO: Read frame, update state
-                        //Result::Err(_) => continue,
-                        //};
+                        socket.set_read_timeout(time).unwrap();
+                        let frame = socket.read_frame();
+                        match frame {
+                            Result::Ok(f) => {
+                                let frame_gauges = gauges.get_mut(&f.id());
+                                match frame_gauges {
+                                    Some(fgauges) => {
+                                        for (slot_id, gauge) in fgauges.iter_mut() {
+                                            let slot_start = (slot_id - 1) * config.slot_size;
+                                            let slot_end: usize =
+                                                (slot_start + config.slot_size).into();
+                                            let data: &[u8; 4] = &f.data()
+                                                [slot_start.into()..slot_end]
+                                                .try_into()
+                                                .expect("Failure");
+                                            let value = f32::from_be_bytes(*data);
+                                            gauge.set_value(value);
+                                        }
+                                    }
+                                    None => continue,
+                                }
+                            }
+                            Result::Err(_) => continue,
+                        };
                     } else {
                         break;
                     }
