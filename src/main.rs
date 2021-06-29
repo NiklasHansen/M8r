@@ -29,12 +29,14 @@ mod gauge;
 #[derive(Deserialize)]
 struct Config {
     interface: String,
+    slot_size: u8,
     gauges: Vec<Gauge>,
 }
 
 #[derive(Deserialize)]
 struct Gauge {
     frame_id: u16,
+    slot_id: u8,
     gauge: GaugeType,
     title: String,
     unit: String,
@@ -78,8 +80,14 @@ fn main() -> Result<(), std::convert::Infallible> {
     let _bytes_read = file.read_to_string(&mut file_content).unwrap();
     let config: Config = toml::from_str(&&file_content).unwrap();
 
-    let mut gauges: HashMap<u16, gauge::Gauge> = HashMap::new();
+    let mut gauges: HashMap<u16, HashMap<u8, gauge::Gauge>> = HashMap::new();
     for gauge_config in config.gauges.iter() {
+        if !gauges.contains_key(&gauge_config.frame_id) {
+            gauges.insert(gauge_config.frame_id, HashMap::new());
+        }
+
+        let map = gauges.get_mut(&gauge_config.frame_id).unwrap();
+
         let digits = match gauge_config.digits {
             0 => Digits::None,
             1 => Digits::Single,
@@ -100,40 +108,23 @@ fn main() -> Result<(), std::convert::Infallible> {
                     ),
                     gauge_config.indicators.as_ref().unwrap().as_slice(),
                 );
-                gauges.insert(gauge_config.frame_id, gauge::Gauge::Dial(dial));
+                map.insert(gauge_config.slot_id, gauge::Gauge::Dial(dial));
             }
             GaugeType::TextGauge => {
-                let textgauge = TextGauge::new(&gauge_config.title, &gauge_config.unit, 0.0, digits, Rectangle::new(Point::new(gauge_config.point.x, gauge_config.point.y), Size::new(gauge_config.size.width, gauge_config.size.height)));
-                gauges.insert(gauge_config.frame_id, gauge::Gauge::TextGauge(textgauge));
+                let textgauge = TextGauge::new(
+                    &gauge_config.title,
+                    &gauge_config.unit,
+                    0.0,
+                    digits,
+                    Rectangle::new(
+                        Point::new(gauge_config.point.x, gauge_config.point.y),
+                        Size::new(gauge_config.size.width, gauge_config.size.height),
+                    ),
+                );
+                map.insert(gauge_config.slot_id, gauge::Gauge::TextGauge(textgauge));
             }
         }
     }
-
-    //let mut boost = Dial::new(
-        //"Boost",
-        //-1.0,
-        //2.0,
-        //1.2,
-        //Digits::Two,
-        //Rectangle::new(Point::new(0, 0), Size::new(64, 64)),
-        //&[0.0],
-    //);
-    //let [>mut<] oiltemp = Dial::new("Oil temp", 0.0, 150.0, 70.0, Digits::None, Rectangle::new(Point::new(64, 0), Size::new(64, 64)), &[80.0]);
-    //let [>mut<] oilpres = Dial::new("Oil pres", 0.0, 10.0, 0.0, Digits::Single, Rectangle::new(Point::new(128, 0), Size::new(64, 64)), &[2.0, 4.0, 6.0, 8.0]);
-    //let coolant = TextGauge::new(
-        //"H2O",
-        //"C",
-        //85.0,
-        //Digits::None,
-        //Rectangle::new(Point::new(192, 2), Size::new(64, 10)),
-    //);
-    //let iat = TextGauge::new(
-        //"IAT",
-        //"C",
-        //32.0,
-        //Digits::None,
-        //Rectangle::new(Point::new(192, 12), Size::new(64, 10)),
-    //);
 
     // TODO: Set up filter, to filter out frames not relevant.
     //let socket = CANSocket::open(&config.interface).unwrap();
@@ -144,15 +135,11 @@ fn main() -> Result<(), std::convert::Infallible> {
         let frame_start = std::time::Instant::now();
         display.clear(BinaryColor::Off)?;
 
-        for (_, drawable) in gauges.iter() {
-            drawable.draw(&mut display)?;
+        for (_, gauge_slots) in gauges.iter() {
+            for (_, drawable) in gauge_slots.iter() {
+                drawable.draw(&mut display)?;
+            }
         }
-
-        //boost.draw(&mut display)?;
-        //oiltemp.draw(&mut display)?;
-        //oilpres.draw(&mut display)?;
-        //coolant.draw(&mut display)?;
-        //iat.draw(&mut display)?;
 
         window.update(&display);
 
@@ -182,11 +169,5 @@ fn main() -> Result<(), std::convert::Infallible> {
                 }
             }
         }
-
-        // This is just for testing purposes
-        //boost.current_value += 0.05;
-        //if boost.current_value > boost.max_value {
-            //boost.current_value = boost.min_value;
-        //}
     }
 }

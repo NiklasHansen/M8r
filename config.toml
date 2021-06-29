@@ -1,7 +1,9 @@
 interface = "vcan0"
+slot_size = 2
 
 [[gauges]]
 frame_id = 601
+slot_id = 1
 gauge = "Dial"
 title = "Boost"
 unit = "bar"
@@ -14,6 +16,7 @@ size = { width = 64, height = 64 }
 
 [[gauges]]
 frame_id = 602
+slot_id = 1
 gauge = "Dial"
 title = "Oil temp"
 unit = "C"
@@ -26,6 +29,7 @@ size = { width = 64, height = 64 }
 
 [[gauges]]
 frame_id = 603
+slot_id = 1
 gauge = "Dial"
 title = "Oil pres"
 unit = "bar"
@@ -38,6 +42,7 @@ size = { width = 64, height = 64 }
 
 [[gauges]]
 frame_id = 604
+slot_id = 1
 gauge = "TextGauge"
 title = "H2O"
 unit = "C"
@@ -47,6 +52,7 @@ size = { width = 64, height = 10 }
 
 [[gauges]]
 frame_id = 605
+slot_id = 1
 gauge = "TextGauge"
 title = "IAT"
 unit = "C"
