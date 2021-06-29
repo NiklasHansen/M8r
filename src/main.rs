@@ -17,6 +17,7 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
 use gauge::{dial::Dial, textgauge::TextGauge, Digits, SetValue};
+use half::f16;
 use serde::Deserialize;
 use socketcan::CANSocket;
 use std::collections::HashMap;
@@ -165,12 +166,12 @@ fn main() -> Result<(), std::convert::Infallible> {
                                             let slot_start = (slot_id - 1) * config.slot_size;
                                             let slot_end: usize =
                                                 (slot_start + config.slot_size).into();
-                                            let data: &[u8; 4] = &f.data()
+                                            let data: &[u8; 2] = &f.data()
                                                 [slot_start.into()..slot_end]
                                                 .try_into()
                                                 .expect("Failure");
-                                            let value = f32::from_be_bytes(*data);
-                                            gauge.set_value(value);
+                                            let value = f16::from_be_bytes(*data);
+                                            gauge.set_value(value.into());
                                         }
                                     }
                                     None => continue,
