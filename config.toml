@@ -5,6 +5,7 @@ slot_size = 2
 frame_id = 601
 slot_id = 1
 gauge = "Dial"
+data_type = "F16"
 title = "Boost"
 unit = "bar"
 min_value = -1.0
@@ -18,6 +19,7 @@ size = { width = 64, height = 64 }
 frame_id = 602
 slot_id = 1
 gauge = "Dial"
+data_type = "F16"
 title = "Oil temp"
 unit = "C"
 min_value = 0.0
@@ -31,6 +33,7 @@ size = { width = 64, height = 64 }
 frame_id = 603
 slot_id = 1
 gauge = "Dial"
+data_type = "F16"
 title = "Oil pres"
 unit = "bar"
 min_value = 0.0
@@ -44,6 +47,7 @@ size = { width = 64, height = 64 }
 frame_id = 604
 slot_id = 1
 gauge = "TextGauge"
+data_type = "F16"
 title = "H2O"
 unit = "C"
 digits = 0
@@ -54,6 +58,7 @@ size = { width = 64, height = 10 }
 frame_id = 605
 slot_id = 1
 gauge = "TextGauge"
+data_type = "F16"
 title = "IAT"
 unit = "C"
 digits = 0

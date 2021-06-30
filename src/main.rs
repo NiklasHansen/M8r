@@ -17,68 +17,24 @@ use embedded_graphics_simulator::{
     BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
 use gauge::{dial::Dial, textgauge::TextGauge, Digits, SetValue};
-use half::f16;
-use serde::Deserialize;
 use socketcan::CANSocket;
 use std::collections::HashMap;
-use std::convert::TryInto;
 use std::fs::File;
 use std::io::Read;
 use std::time::Duration;
+use crate::config::{Config, Gauge, GaugeType};
 
 mod gauge;
-
-#[derive(Deserialize)]
-struct Config {
-    interface: String,
-    slot_size: u8,
-    gauges: Vec<Gauge>,
-}
-
-#[derive(Deserialize)]
-struct Gauge {
-    frame_id: u32,
-    slot_id: u8, // 1-indexed
-    gauge: GaugeType,
-    title: String,
-    unit: String,
-    min_value: Option<f32>,
-    max_value: Option<f32>,
-    indicators: Option<Vec<f32>>,
-    digits: u8,
-    point: StartPoint,
-    size: AreaSize,
-}
-
-#[derive(Deserialize)]
-enum GaugeType {
-    Dial,
-    TextGauge,
-}
-
-#[derive(Deserialize)]
-struct StartPoint {
-    x: i32,
-    y: i32,
-}
-
-#[derive(Deserialize)]
-struct AreaSize {
-    width: u32,
-    height: u32,
-}
+mod config;
 
 struct GaugeSetup<'a> {
     gauge: gauge::Gauge<'a>,
-    config: &'a Gauge, 
+    config: &'a Gauge,
 }
 
 impl GaugeSetup<'_> {
     fn new<'a>(gauge: gauge::Gauge<'a>, config: &'a Gauge) -> GaugeSetup<'a> {
-        GaugeSetup {
-            gauge,
-            config,
-        }
+        GaugeSetup { gauge, config }
     }
 }
 
@@ -137,7 +93,10 @@ fn main() -> Result<(), std::convert::Infallible> {
                         Size::new(gauge_config.size.width, gauge_config.size.height),
                     ),
                 );
-                list.push(GaugeSetup::new(gauge::Gauge::TextGauge(textgauge), &gauge_config));
+                list.push(GaugeSetup::new(
+                    gauge::Gauge::TextGauge(textgauge),
+                    &gauge_config,
+                ));
             }
         }
     }
@@ -177,15 +136,10 @@ fn main() -> Result<(), std::convert::Infallible> {
                                 match frame_gauges {
                                     Some(fgauges) => {
                                         for gauge_setup in fgauges.iter_mut() {
-                                            let slot_start = (gauge_setup.config.slot_id - 1) * config.slot_size;
-                                            let slot_end: usize =
-                                                (slot_start + config.slot_size).into();
-                                            let data: &[u8; 2] = &f.data()
-                                                [slot_start.into()..slot_end]
-                                                .try_into()
-                                                .expect("Failure");
-                                            let value = f16::from_be_bytes(*data);
-                                            gauge_setup.gauge.set_value(value.into());
+                                            let slot_start =
+                                                (gauge_setup.config.slot_id - 1) * config.slot_size;
+                                            let value = gauge_setup.config.data_type.value(&f.data(), slot_start);
+                                            gauge_setup.gauge.set_value(value);
                                         }
                                     }
                                     None => continue,
