@@ -38,7 +38,7 @@ struct Config {
 #[derive(Deserialize)]
 struct Gauge {
     frame_id: u32,
-    slot_id: u8,
+    slot_id: u8, // 1-indexed
     gauge: GaugeType,
     title: String,
     unit: String,
@@ -68,6 +68,20 @@ struct AreaSize {
     height: u32,
 }
 
+struct GaugeSetup<'a> {
+    gauge: gauge::Gauge<'a>,
+    config: &'a Gauge, 
+}
+
+impl GaugeSetup<'_> {
+    fn new<'a>(gauge: gauge::Gauge<'a>, config: &'a Gauge) -> GaugeSetup<'a> {
+        GaugeSetup {
+            gauge,
+            config,
+        }
+    }
+}
+
 fn main() -> Result<(), std::convert::Infallible> {
     let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(256, 64));
 
@@ -82,13 +96,13 @@ fn main() -> Result<(), std::convert::Infallible> {
     let _bytes_read = file.read_to_string(&mut file_content).unwrap();
     let config: Config = toml::from_str(&&file_content).unwrap();
 
-    let mut gauges: HashMap<u32, HashMap<u8, gauge::Gauge>> = HashMap::new();
+    let mut gauges: HashMap<u32, Vec<GaugeSetup>> = HashMap::new();
     for gauge_config in config.gauges.iter() {
         if !gauges.contains_key(&gauge_config.frame_id) {
-            gauges.insert(gauge_config.frame_id, HashMap::new());
+            gauges.insert(gauge_config.frame_id, Vec::new());
         }
 
-        let map = gauges.get_mut(&gauge_config.frame_id).unwrap();
+        let list = gauges.get_mut(&gauge_config.frame_id).unwrap();
 
         let digits = match gauge_config.digits {
             0 => Digits::None,
@@ -110,7 +124,7 @@ fn main() -> Result<(), std::convert::Infallible> {
                     ),
                     gauge_config.indicators.as_ref().unwrap().as_slice(),
                 );
-                map.insert(gauge_config.slot_id, gauge::Gauge::Dial(dial));
+                list.push(GaugeSetup::new(gauge::Gauge::Dial(dial), &gauge_config));
             }
             GaugeType::TextGauge => {
                 let textgauge = TextGauge::new(
@@ -123,7 +137,7 @@ fn main() -> Result<(), std::convert::Infallible> {
                         Size::new(gauge_config.size.width, gauge_config.size.height),
                     ),
                 );
-                map.insert(gauge_config.slot_id, gauge::Gauge::TextGauge(textgauge));
+                list.push(GaugeSetup::new(gauge::Gauge::TextGauge(textgauge), &gauge_config));
             }
         }
     }
@@ -138,8 +152,8 @@ fn main() -> Result<(), std::convert::Infallible> {
         display.clear(BinaryColor::Off)?;
 
         for (_, gauge_slots) in gauges.iter() {
-            for (_, drawable) in gauge_slots.iter() {
-                drawable.draw(&mut display)?;
+            for gauge_setup in gauge_slots.iter() {
+                gauge_setup.gauge.draw(&mut display)?;
             }
         }
 
@@ -162,8 +176,8 @@ fn main() -> Result<(), std::convert::Infallible> {
                                 let frame_gauges = gauges.get_mut(&f.id());
                                 match frame_gauges {
                                     Some(fgauges) => {
-                                        for (slot_id, gauge) in fgauges.iter_mut() {
-                                            let slot_start = (slot_id - 1) * config.slot_size;
+                                        for gauge_setup in fgauges.iter_mut() {
+                                            let slot_start = (gauge_setup.config.slot_id - 1) * config.slot_size;
                                             let slot_end: usize =
                                                 (slot_start + config.slot_size).into();
                                             let data: &[u8; 2] = &f.data()
@@ -171,7 +185,7 @@ fn main() -> Result<(), std::convert::Infallible> {
                                                 .try_into()
                                                 .expect("Failure");
                                             let value = f16::from_be_bytes(*data);
-                                            gauge.set_value(value.into());
+                                            gauge_setup.gauge.set_value(value.into());
                                         }
                                     }
                                     None => continue,
