@@ -12,10 +12,17 @@
 //// - Lambda?
 //// - Knock warn light?
 
-use embedded_graphics::{pixelcolor::BinaryColor, prelude::*, primitives::Rectangle};
+#[cfg(not(feature = "colors"))]
+use embedded_graphics::pixelcolor::BinaryColor;
+#[cfg(feature = "colors")]
+use embedded_graphics::pixelcolor::Rgb888;
+
+use embedded_graphics::{prelude::*, primitives::Rectangle};
 use embedded_graphics_simulator::{
-    BinaryColorTheme, OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
+    OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
+#[cfg(not(feature = "colors"))]
+use embedded_graphics_simulator::BinaryColorTheme;
 use gauge::{dial::Dial, textgauge::TextGauge, Digits, SetValue};
 use socketcan::CANSocket;
 use std::collections::HashMap;
@@ -39,18 +46,27 @@ impl GaugeSetup<'_> {
 }
 
 fn main() -> Result<(), std::convert::Infallible> {
-    let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(256, 64));
-
-    let output_settings = OutputSettingsBuilder::new()
-        .theme(BinaryColorTheme::OledBlue)
-        .build();
-    let mut window = Window::new("m8r", &output_settings);
-
     let input_file = "./config.toml";
     let mut file = File::open(input_file).unwrap();
     let mut file_content = String::new();
     let _bytes_read = file.read_to_string(&mut file_content).unwrap();
     let config: Config = toml::from_str(&&file_content).unwrap();
+
+    #[cfg(not(feature = "colors"))]
+    let mut display: SimulatorDisplay<BinaryColor> = SimulatorDisplay::new(Size::new(config.width, config.height));
+    #[cfg(feature = "colors")]
+    let mut display: SimulatorDisplay<Rgb888> = SimulatorDisplay::new(Size::new(config.width, config.height));
+
+    #[cfg(feature = "colors")]
+    let output_settings = OutputSettingsBuilder::new()
+        .scale(3)
+        .build();
+    #[cfg(not(feature = "colors"))]
+    let output_settings = OutputSettingsBuilder::new()
+        .theme(BinaryColorTheme::OledBlue)
+        .build();
+
+    let mut window = Window::new("m8r", &output_settings);
 
     let mut gauges: HashMap<u32, Vec<GaugeSetup>> = HashMap::new();
     for gauge_config in config.gauges.iter() {
@@ -79,6 +95,7 @@ fn main() -> Result<(), std::convert::Infallible> {
                         Size::new(gauge_config.size.width, gauge_config.size.height),
                     ),
                     gauge_config.indicators.as_ref().unwrap().as_slice(),
+                    &config,
                 );
                 list.push(GaugeSetup::new(gauge::Gauge::Dial(dial), &gauge_config));
             }
@@ -92,6 +109,7 @@ fn main() -> Result<(), std::convert::Infallible> {
                         Point::new(gauge_config.point.x, gauge_config.point.y),
                         Size::new(gauge_config.size.width, gauge_config.size.height),
                     ),
+                    &config,
                 );
                 list.push(GaugeSetup::new(
                     gauge::Gauge::TextGauge(textgauge),
@@ -106,9 +124,15 @@ fn main() -> Result<(), std::convert::Infallible> {
     let target_fps = 30;
     let time_per_frame = Duration::from_millis(1000 / target_fps);
 
+    #[cfg(feature = "colors")]
+    let background = Rgb888::new(config.colors.background.r, config.colors.background.g, config.colors.background.b);
+    #[cfg(not(feature = "colors"))]
+    let background = BinaryColor::Off;
+
     'running: loop {
         let frame_start = std::time::Instant::now();
-        display.clear(BinaryColor::Off)?;
+
+        display.clear(background)?;
 
         for (_, gauge_slots) in gauges.iter() {
             for gauge_setup in gauge_slots.iter() {
@@ -152,7 +176,6 @@ fn main() -> Result<(), std::convert::Infallible> {
                     }
                 }
                 None => {
-                    println!("Time for next frame");
                     break;
                 }
             }

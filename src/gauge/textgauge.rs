@@ -1,13 +1,23 @@
 use super::{Digits, DrawableWrapper, SetValue};
+use crate::Config;
 use embedded_graphics::{
     draw_target::DrawTarget,
     mono_font::{ascii::FONT_6X9, MonoTextStyle},
-    pixelcolor::BinaryColor,
     prelude::Point,
     primitives::Rectangle,
     text::{Alignment, Baseline, Text, TextStyleBuilder},
     Drawable,
 };
+
+#[cfg(feature = "colors")]
+use embedded_graphics::pixelcolor::Rgb888;
+#[cfg(not(feature = "colors"))]
+use embedded_graphics::pixelcolor::BinaryColor;
+
+#[cfg(feature = "colors")]
+type Colour = Rgb888;
+#[cfg(not(feature = "colors"))]
+type Colour = BinaryColor;
 
 pub struct TextGauge<'a> {
     pub title: &'a str,
@@ -16,7 +26,7 @@ pub struct TextGauge<'a> {
     pub digits: Digits,
 
     bounding_box: Rectangle,
-    character_style: MonoTextStyle<'a, BinaryColor>,
+    character_style: MonoTextStyle<'a, Colour>,
     drawables: Vec<DrawableWrapper<'a>>,
 }
 
@@ -27,12 +37,18 @@ impl TextGauge<'_> {
         value: f32,
         digits: Digits,
         bounding_box: Rectangle,
+        config: &Config,
     ) -> TextGauge<'a> {
+        #[cfg(feature = "colors")]
+        let primary = Rgb888::new(config.colors.primary.r, config.colors.primary.g, config.colors.primary.b);
+        #[cfg(not(feature = "colors"))]
+        let primary = BinaryColor::On;
+
         let text_style = TextStyleBuilder::new()
             .baseline(Baseline::Middle)
             .alignment(Alignment::Left)
             .build();
-        let character_style = MonoTextStyle::new(&FONT_6X9, BinaryColor::On);
+        let character_style = MonoTextStyle::new(&FONT_6X9, primary);
         let mut drawables: Vec<DrawableWrapper<'a>> = Vec::new();
         let center = bounding_box.center();
 
@@ -57,12 +73,13 @@ impl TextGauge<'_> {
 }
 
 impl Drawable for TextGauge<'_> {
-    type Color = BinaryColor;
+    type Color = Colour;
+
     type Output = ();
 
     fn draw<D>(&self, target: &mut D) -> Result<Self::Output, <D as DrawTarget>::Error>
     where
-        D: DrawTarget<Color = BinaryColor>,
+        D: DrawTarget<Color = Self::Color>,
     {
         let text_style = TextStyleBuilder::new()
             .baseline(Baseline::Middle)

@@ -4,11 +4,20 @@ pub mod textgauge;
 use embedded_graphics::{
     draw_target::DrawTarget,
     mono_font::MonoTextStyle,
-    pixelcolor::BinaryColor,
     primitives::{Arc, Line, PrimitiveStyle, Styled},
     text::Text,
     Drawable,
 };
+
+#[cfg(feature = "colors")]
+use embedded_graphics::pixelcolor::Rgb888;
+#[cfg(not(feature = "colors"))]
+use embedded_graphics::pixelcolor::BinaryColor;
+
+#[cfg(feature = "colors")]
+type Colour = Rgb888;
+#[cfg(not(feature = "colors"))]
+type Colour = BinaryColor;
 
 pub enum Digits {
     None,
@@ -35,7 +44,8 @@ impl SetValue for Gauge<'_> {
 }
 
 impl Drawable for Gauge<'_> {
-    type Color = BinaryColor;
+    type Color = Colour;
+
     type Output = ();
 
     fn draw<D>(&self, target: &mut D) -> Result<Self::Output, D::Error>
@@ -50,18 +60,19 @@ impl Drawable for Gauge<'_> {
 }
 
 enum DrawableWrapper<'a> {
-    Arc(Styled<Arc, PrimitiveStyle<BinaryColor>>),
-    Line(Styled<Line, PrimitiveStyle<BinaryColor>>),
-    Text(Text<'a, MonoTextStyle<'a, BinaryColor>>),
+    Arc(Styled<Arc, PrimitiveStyle<Colour>>),
+    Line(Styled<Line, PrimitiveStyle<Colour>>),
+    Text(Text<'a, MonoTextStyle<'a, Colour>>),
 }
 
 impl Drawable for DrawableWrapper<'_> {
-    type Color = BinaryColor;
+    type Color = Colour;
+
     type Output = ();
 
     fn draw<D>(&self, target: &mut D) -> Result<Self::Output, <D as DrawTarget>::Error>
     where
-        D: DrawTarget<Color = BinaryColor>,
+        D: DrawTarget<Color = Self::Color>,
     {
         match self {
             DrawableWrapper::Arc(arc) => Ok(arc.draw(target)?),

@@ -1,13 +1,23 @@
 use super::{Digits, DrawableWrapper, SetValue};
+use crate::Config;
 use embedded_graphics::{
     draw_target::DrawTarget,
-    mono_font::{ascii::FONT_10X20, ascii::FONT_4X6, MonoTextStyle},
-    pixelcolor::BinaryColor,
+    mono_font::{ascii::FONT_10X20, ascii::FONT_6X9, MonoTextStyle},
     prelude::*,
     primitives::{Arc, Line, PrimitiveStyle, PrimitiveStyleBuilder, Rectangle, StrokeAlignment},
     text::{Alignment, Baseline, Text, TextStyle, TextStyleBuilder},
     Drawable,
 };
+
+#[cfg(feature = "colors")]
+use embedded_graphics::pixelcolor::Rgb888;
+#[cfg(not(feature = "colors"))]
+use embedded_graphics::pixelcolor::BinaryColor;
+
+#[cfg(feature = "colors")]
+type Colour = Rgb888;
+#[cfg(not(feature = "colors"))]
+type Colour = BinaryColor;
 
 pub struct Dial<'a> {
     pub title: &'a str,
@@ -17,9 +27,9 @@ pub struct Dial<'a> {
     pub digits: Digits,
     pub bounding: Rectangle,
 
-    arc_stroke: PrimitiveStyle<BinaryColor>,
-    outline: PrimitiveStyle<BinaryColor>,
-    character_style: MonoTextStyle<'a, BinaryColor>,
+    arc_stroke: PrimitiveStyle<Colour>,
+    outline: PrimitiveStyle<Colour>,
+    character_style: MonoTextStyle<'a, Colour>,
     text_style: TextStyle,
     outer_radius: u8,
     inner_radius: u8,
@@ -35,7 +45,13 @@ impl Dial<'_> {
         digits: Digits,
         bounding: Rectangle,
         indicators: &[f32],
+        config: &Config,
     ) -> Dial<'a> {
+        #[cfg(feature = "colors")]
+        let primary = Rgb888::new(config.colors.primary.r, config.colors.primary.g, config.colors.primary.b);
+        #[cfg(not(feature = "colors"))]
+        let primary = BinaryColor::On;
+
         let mut ret = Dial {
             title,
             min_value,
@@ -45,22 +61,22 @@ impl Dial<'_> {
             bounding,
 
             arc_stroke: PrimitiveStyleBuilder::new()
-                .stroke_color(BinaryColor::On)
+                .stroke_color(primary)
                 .stroke_width(5)
                 .stroke_alignment(StrokeAlignment::Inside)
                 .build(),
             outline: PrimitiveStyleBuilder::new()
-                .stroke_color(BinaryColor::On)
-                .stroke_width(1)
+                .stroke_color(primary)
+                .stroke_width(2)
                 .stroke_alignment(StrokeAlignment::Inside)
                 .build(),
-            character_style: MonoTextStyle::new(&FONT_10X20, BinaryColor::On),
+            character_style: MonoTextStyle::new(&FONT_10X20, primary),
             text_style: TextStyleBuilder::new()
                 .baseline(Baseline::Middle)
                 .alignment(Alignment::Center)
                 .build(),
-            outer_radius: 30,
-            inner_radius: 26,
+            outer_radius: 56,
+            inner_radius: 48,
 
             drawables: Vec::new(),
         };
@@ -70,8 +86,8 @@ impl Dial<'_> {
         ret.drawables
             .push(DrawableWrapper::Text(Text::with_text_style(
                 title,
-                Point::new(center.x, 20),
-                MonoTextStyle::new(&FONT_4X6, BinaryColor::On),
+                Point::new(center.x, 40),
+                MonoTextStyle::new(&FONT_6X9, primary),
                 ret.text_style,
             )));
 
@@ -128,12 +144,13 @@ impl Dial<'_> {
 }
 
 impl Drawable for Dial<'_> {
-    type Color = BinaryColor;
+    type Color = Colour;
+
     type Output = ();
 
     fn draw<D>(&self, target: &mut D) -> Result<Self::Output, <D as DrawTarget>::Error>
     where
-        D: DrawTarget<Color = BinaryColor>,
+        D: DrawTarget<Color = Self::Color>,
     {
         let percentage =
             ((self.current_value - self.min_value) / (self.max_value - self.min_value)) * 100.0;
@@ -142,7 +159,7 @@ impl Drawable for Dial<'_> {
         // Draw an arc with a 5px wide stroke.
         let arc = Arc::new(
             Point::new((self.bounding.top_left.x + 2).into(), 2),
-            64 - 4,
+            112,
             270.0.deg(),
             -sweep.deg(),
         );

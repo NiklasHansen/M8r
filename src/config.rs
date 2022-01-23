@@ -6,7 +6,12 @@ use std::convert::TryInto;
 pub struct Config {
     pub interface: String,
     pub slot_size: u8,
+    pub width: u32,
+    pub height: u32,
     pub gauges: Vec<Gauge>,
+
+    #[cfg(feature = "colors")]
+    pub colors: Colors,
 }
 
 #[derive(Deserialize)]
@@ -40,6 +45,21 @@ pub enum GaugeDataType {
     I8,
     B8,
     B16,
+}
+
+#[cfg(feature = "colors")]
+#[derive(Deserialize)]
+pub struct Colors {
+    pub primary: Rgb,
+    pub background: Rgb,
+}
+
+#[cfg(feature = "colors")]
+#[derive(Deserialize)]
+pub struct Rgb {
+    pub r: u8,
+    pub g: u8,
+    pub b: u8,
 }
 
 impl GaugeDataType {
